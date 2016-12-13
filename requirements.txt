@@ -1,0 +1,4 @@
+Flask==0.11.1
+Flask-RESTful==0.3.5
+google-api-python-client==1.5.5
+oauth2client==2.2.0
