@@ -19,22 +19,24 @@ Flask.get = lambda self, path: self.route(path, methods=['get'])
 app = Flask(__name__)
 api = Api(app)
 
-# Store your full project ID in a variable in the format the API needs.
-projectID = 'projects/{}'.format('fe-cdantonio')
-
-# Get application default credentials (possible only if gcloud is
-#  configured on your machine).
-# services = json.loads(os.environ['VCAP_SERVICES'])
-# credentialBlock = json.dumps(services['google-ml-apis'][0]['credentials'])
-credentials = GoogleCredentials.get_application_default() # from_json(credentialBlock)
-# credentials = ServiceAccountCredentials.from_json_keyfile_name("/tmp/pcf-binding.json")
-
-# Build a representation of the Cloud ML API.
-ml = discovery.build('ml', 'v1beta1', credentials=credentials)
-
 # Make the call.
 
-class LearningModel(Resource):
+class GoogleMachineLearningModel(Resource):
+    def __init__(self):
+        # Store your full project ID in a variable in the format the API needs.
+        projectID = 'projects/{}'.format(os.environ['GCP_PROJECT'])
+        services = json.loads(os.environ['VCAP_SERVICES'])
+        if 'google-ml-apis' in services:
+            for service in services['google-ml-apis']:
+                    if s.get('name') == 'prediction-service'
+                        # authenticate
+                        binding = s.get('credentials')
+                        credentials = ServiceAccountCredentials(binding.get('service_account_email'), NEED SIGNER,
+                            binding.get('private_key_id'), binding.get('client_id')
+                        # Build a representation of the Cloud ML API.
+                        ml = discovery.build('ml', 'v1beta1', credentials=credentials)
+        else:
+            raise EnvironmentError(1,"Service not bound in environment")
     def put(self, name):
         try:
             # Create a dictionary with the fields from the request body.
@@ -75,7 +77,7 @@ class LearningModel(Resource):
             # Something went wrong, print out some information.
             return 'There was an error creating the model. Check the details:' + err._get_reason()
 
-api.add_resource(LearningModel, '/model/<string:name>')
+api.add_resource(GoogleMachineLearningModel, '/model/<string:name>')
 
 @app.get('/')
 def list():
