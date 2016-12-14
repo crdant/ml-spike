@@ -1,0 +1,10 @@
+---
+applications:
+- name: spike
+  memory: 128M
+  buildpack: python_buildpack
+  host: spike
+  services:
+  - prediction-service
+  env:
+    GCP_PROJECT: fe-cdantonio
