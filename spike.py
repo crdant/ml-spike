@@ -13,6 +13,7 @@ from flask import Flask, request
 from flask_restful import Resource, Api
 
 import os
+import time
 import json
 import base64
 import StringIO
@@ -64,12 +65,11 @@ class GoogleMachineLearningModel(Resource):
     def put(self, name):
         try:
             # Create a dictionary with the fields from the request body.
-            requestDict = {'name': name,
+            requestBody = {'name': name,
                 'description': 'a spike to experiment with connecting to the ML APIs'}
-            print request.args
             # Create a request to call projects.models.create.
             request = ml.projects().models().create(
-                parent=projectID, body=requestDict)
+                parent=projectID, body=requestBody)
             response = request.execute()
             return response
         except errors.HttpError, err:
@@ -87,7 +87,7 @@ class GoogleMachineLearningModel(Resource):
             return response
         except errors.HttpError, err:
             # Something went wrong, print out some information.
-            return 'There was an error creating the model. Check the details:' + err._get_reason()
+            return 'There was an error deleting the model. Check the details:' + err._get_reason()
 
     def get(self, name):
         try:
@@ -99,7 +99,58 @@ class GoogleMachineLearningModel(Resource):
             return response
         except errors.HttpError, err:
             # Something went wrong, print out some information.
-            return 'There was an error creating the model. Check the details:' + err._get_reason()
+            return 'There was an error getting the model. Check the details:' + err._get_reason()
+
+api.add_resource(GoogleMachineLearningModel, '/model/<string:name>')
+
+class GoogleMachineLearningJob(Resource):
+    def post(self, name):
+        try:
+            # Create a dictionary with the fields from the request body.
+            jobId = name + "_" + time.strftime('%Y%m%d') + "_" + time.strftime('%S%M%H')
+            requestBody = {
+                   "jobId": jobId,
+                   "trainingInput": {
+                       "args": ["--train_dir=gs://{}/{}/train".format(storageBinding['bucket_name'], jobId)],
+                       "packageUris": ["gs://fe-cdantonio-ml/mnist_crdant_20161215_0117292/454e901f09767005b057fd41cb223de84329b09d/trainer-0.0.0.tar.gz"],
+                       "pythonModule": "trainer.task",
+                       "region": "us-central1"
+                   }
+                }
+            # Create a request to call projects.models.create.
+            request = ml.projects().jobs().create(
+                parent=projectID, body=requestBody)
+            response = request.execute()
+            return response
+        except errors.HttpError, err:
+            # Something went wrong, print out some information.
+            return 'There was an error creating the job. Check the details:' + err._get_reason()
+
+    def delete(self, name):
+        try:
+            name = 'projects/fe-cdantonio/jobs/%s' % name
+
+            # Create a request to call projects.models.create.
+            request = ml.projects().jobs().cancel( name=name, body={} )
+            response = request.execute()
+            return response
+        except errors.HttpError, err:
+            # Something went wrong, print out some information.
+            return 'There was an error deleting the job. Check the details:' + err._get_reason()
+
+    def get(self, name):
+        try:
+            jobName = 'projects/fe-cdantonio/jobs/%s' % name
+
+            # Create a request to call projects.models.create.
+            request = ml.projects().jobs().get( name=jobName )
+            response = request.execute()
+            return response
+        except errors.HttpError, err:
+            # Something went wrong, print out some information.
+            return 'There was an error getting the job. Check the details:' + err._get_reason()
+
+api.add_resource(GoogleMachineLearningJob, '/job/<string:name>')
 
 class GoogleStorageObject(Resource):
     def __init__(self):
@@ -141,14 +192,11 @@ class GoogleStorageObject(Resource):
             # Something went wrong, print out some information.
             return 'There was an error getting the object. Check the details:' + err._get_reason()
 
-api.add_resource(GoogleMachineLearningModel, '/model/<string:name>')
 api.add_resource(GoogleStorageObject, '/object/<string:name>')
 
 @app.get('/')
 def list():
     try:
-        # Create a dictionary with the fields from the request body.
-        # Create a request to call projects.models.create.
         request = ml.projects().models().list( parent=projectID )
         response = request.execute()
         if response:
@@ -158,7 +206,20 @@ def list():
             models = models + "</ul>"
         else:
             models = "<h4>No models</h4><br/>"
-        return models
+
+        request = storage.objects().list(bucket=storageBinding.get("bucket_name"))
+        response = request.execute()
+        if response:
+            items = "<h4>Items</h4><ul>"
+            for i, v in enumerate(response['items']):
+               items = items + v['name'] + "&nbsp;&nbsp;&nbsp;" + v['contentType'] + '<br> '
+            items = items + "</ul>"
+        else:
+            items = "<h4>No files</h4><br/>"
+
+        result = models + items
+
+        return result
 
     except errors.HttpError, err:
         # Something went wrong, print out some information.
