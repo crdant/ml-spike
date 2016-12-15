@@ -5,6 +5,7 @@ applications:
   buildpack: python_buildpack
   host: spike
   services:
-  - prediction-service
+  - prediction-apis
+  - model-storage
   env:
     GCP_PROJECT: fe-cdantonio
