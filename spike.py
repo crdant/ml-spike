@@ -33,7 +33,7 @@ storage=None
 storageBinding=None
 
 # Store your full project ID in a variable in the format the API needs.
-projectID = 'projects/{}'.format(os.environ['GCP_PROJECT'])
+projectID = 'projects/{0}'.format(os.environ['GCP_PROJECT'])
 services = json.loads(os.environ['VCAP_SERVICES'])
 
 if 'google-ml-apis' in services:
@@ -58,7 +58,7 @@ if 'google-storage' in services:
                 # Build a representation of the Cloud Storage API.
                 storage = discovery.build('storage', 'v1', credentials=credentials)
 else:
-    raise EnvironmentError(1,"Learning service not bound in environment")
+    raise EnvironmentError(1,"Storage service not bound in environment")
 
 # Make the call.
 class GoogleMachineLearningModel(Resource):
@@ -79,7 +79,7 @@ class GoogleMachineLearningModel(Resource):
     def delete(self, name):
         try:
             # Create a dictionary with the fields from the request body.
-            modelName = 'projects/fe-cdantonio/models/%s' % name
+            modelName = '{0}/models/{1}'.format(projectID, name)
 
             # Create a request to call projects.models.create.
             request = ml.projects().models().delete( name=modelName )
@@ -91,7 +91,7 @@ class GoogleMachineLearningModel(Resource):
 
     def get(self, name):
         try:
-            modelName = 'projects/fe-cdantonio/models/%s' % name
+            modelName = '{0}/models/{1}'.format(projectID, name)
 
             # Create a request to call projects.models.create.
             request = ml.projects().models().get( name=modelName )
@@ -107,11 +107,11 @@ class GoogleMachineLearningJob(Resource):
     def post(self, name):
         try:
             # Create a dictionary with the fields from the request body.
-            jobId = name + "_" + time.strftime('%Y%m%d') + "_" + time.strftime('%S%M%H')
+            jobId = "{0}_{1}_{2}".format(name, time.strftime('%Y%m%d'), time.strftime('%S%M%H'))
             requestBody = {
                    "jobId": jobId,
                    "trainingInput": {
-                       "args": ["--train_dir=gs://{}/{}/train".format(storageBinding['bucket_name'], jobId)],
+                       "args": ["--train_dir=gs://{0}/{1}/train".format(storageBinding['bucket_name'], jobId)],
                        "packageUris": ["gs://fe-cdantonio-ml/mnist_crdant_20161215_0117292/454e901f09767005b057fd41cb223de84329b09d/trainer-0.0.0.tar.gz"],
                        "pythonModule": "trainer.task",
                        "region": "us-central1"
@@ -128,7 +128,7 @@ class GoogleMachineLearningJob(Resource):
 
     def delete(self, name):
         try:
-            name = 'projects/fe-cdantonio/jobs/%s' % name
+            name = '{0}/jobs/{1}'.format(projectID, name)
 
             # Create a request to call projects.models.create.
             request = ml.projects().jobs().cancel( name=name, body={} )
@@ -140,7 +140,7 @@ class GoogleMachineLearningJob(Resource):
 
     def get(self, name):
         try:
-            jobName = 'projects/fe-cdantonio/jobs/%s' % name
+            jobName = '{0}/jobs/{1}'.format(projectID, name)
 
             # Create a request to call projects.models.create.
             request = ml.projects().jobs().get( name=jobName )
